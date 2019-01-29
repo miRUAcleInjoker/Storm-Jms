@@ -41,7 +41,7 @@ public class GenericBolt extends BaseRichBolt {
 
         // only emit if we have declared fields.
         if (this.declaredFields != null) {
-            System.out.println("[" + this.name + "] 发射元组: " + input);
+            System.out.println("[" + this.name + "] emitting: " + input);
             if (this.autoAnchor) {
                 this.collector.emit(input, input.getValues());
             } else {

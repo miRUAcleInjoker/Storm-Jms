@@ -95,7 +95,7 @@ public class ExampleJmsTopology {
             //本地模式
             LocalCluster cluster = new LocalCluster();
             cluster.submitTopology("storm-jms-example", config, builder.createTopology());
-            Utils.sleep(60000);
+            Utils.sleep(300000);
             cluster.killTopology("storm-jms-example");
             cluster.shutdown();
         }
