@@ -34,11 +34,13 @@ public class ExampleJmsTopology {
     private static final String ANOTHER_BOLT = "ANOTHER_BOLT";
 
     public static void main(String[] args) throws InvalidTopologyException, AuthorizationException, AlreadyAliveException {
+        // JMS Queue Provider
         JmsProvider jmsQueueProvider = new SpringJmsProvider(
                 "jms-activemq.xml",
                 "jmsConnectionFactory",
                 "notificationQueue");
 
+        // JMS Topic provider
         JmsProvider jmsTopicProvider = new SpringJmsProvider(
                 "jms-activemq.xml",
                 "jmsConnectionFactory",
@@ -53,15 +55,19 @@ public class ExampleJmsTopology {
         queueSpout.setJmsTupleProducer(producer);
         queueSpout.setJmsAcknowledgeMode(Session.CLIENT_ACKNOWLEDGE);
 
+        //Topology
         TopologyBuilder builder = new TopologyBuilder();
         builder.setSpout(JMS_QUEUE_SPOUT, queueSpout, 5);
+        // intermediate bolt, subscribes to jms spout, anchors on tuples, and auto-acks
         builder.setBolt(INTERMEDIATE_BOLT,
                 new GenericBolt(true, true, new Fields("json"), "INTERMEDIATE_BOLT"), 3)
                 .shuffleGrouping(JMS_QUEUE_SPOUT);
+        //Final bolt that subscribes to the intermediate bolt, and auto-acks
         builder.setBolt(FINAL_BOLT,
                 new GenericBolt("FINAL_BOLT", true, true), 3)
                 .shuffleGrouping(INTERMEDIATE_BOLT);
 
+        // bolt that subscribes to the intermediate bolt, and publishes to a JMS Topic
         JmsBolt jmsBolt = new JmsBolt();
         jmsBolt.setJmsProvider(jmsTopicProvider);
         jmsBolt.setJmsMessageProducer(new JmsMessageProducer() {
@@ -95,6 +101,7 @@ public class ExampleJmsTopology {
             //本地模式
             LocalCluster cluster = new LocalCluster();
             cluster.submitTopology("storm-jms-example", config, builder.createTopology());
+            //300s后 shutdown
             Utils.sleep(300000);
             cluster.killTopology("storm-jms-example");
             cluster.shutdown();
